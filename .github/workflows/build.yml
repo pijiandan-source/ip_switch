@@ -1,0 +1,51 @@
+name: Build Windows EXE
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Smoke test syntax
+        run: python -m py_compile app.py network_utils.py config.py
+
+      - name: Build single EXE
+        run: pyinstaller --onefile --noconsole --uac-admin --name NetworkSwitcher app.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NetworkSwitcher.exe
+          path: dist/NetworkSwitcher.exe
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: release-latest
+          name: NetworkSwitcher 最新版
+          body: |
+            Windows 10/11 单文件 exe，运行时需要管理员权限。
+
+            如果下载后无法直接运行，请右键选择“以管理员身份运行”。
+          files: dist/NetworkSwitcher.exe
+          prerelease: false
